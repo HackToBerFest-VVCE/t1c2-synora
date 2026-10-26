@@ -1,0 +1,4 @@
+state,consumer_category,financial_year,fixed_charge_inr_per_kw_month,energy_charge_inr_per_kwh,source,source_url,notes
+Karnataka,LT-1 Domestic,2025-26,145,5.8,KERC Combined Tariff Order 2025,https://hrecs.co.in/app/documents/TariffRates2026-27-28.pdf,"Base tariff only; excludes applicable taxes, surcharges, fuel adjustments, subsidies, and other bill components."
+Karnataka,LT-1 Domestic,2026-27,150,5.8,KERC Combined Tariff Order 2025,https://hrecs.co.in/app/documents/TariffRates2026-27-28.pdf,"Base tariff only; excludes applicable taxes, surcharges, fuel adjustments, subsidies, and other bill components."
+Karnataka,LT-1 Domestic,2027-28,160,5.75,KERC Combined Tariff Order 2025,https://hrecs.co.in/app/documents/TariffRates2026-27-28.pdf,"Base tariff only; excludes applicable taxes, surcharges, fuel adjustments, subsidies, and other bill components."

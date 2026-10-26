@@ -1,6 +1,8 @@
 import snowflake.connector
 import streamlit as st
 import pandas as pd
+from PIL import ImageOps
+from ai_helper import get_bill_insights
 
 st.set_page_config(page_title="BillSense", page_icon="💡")
 
@@ -33,6 +35,14 @@ with col2:
     current_days = st.number_input(
         "Current billing days", min_value=1, value=30
     )
+    
+sanctioned_load = st.number_input(
+    "Sanctioned load (kW)",
+    min_value=0.1,
+    value=2.0,
+    step=0.5
+)
+
 
 st.header("Household Changes")
 changes = st.multiselect(
@@ -164,6 +174,29 @@ if st.button("Explain My Bill", type="primary"):
           "causes. Confirm the itemized bill details before drawing "
           "a conclusion."
       )
+    
+    st.divider()
+    st.subheader("🤖 AI-Powered Bill Insights")
+
+    bill_details = {
+        "previous_bill_amount_rupees": previous_amount,
+        "current_bill_amount_rupees": current_amount,
+        "previous_usage_kwh": previous_units,
+        "current_usage_kwh": current_units,
+        "previous_billing_days": previous_days,
+        "current_billing_days": current_days,
+        "reported_household_changes": changes
+    }
+
+    with st.spinner("Qwen2.5 is analyzing your bills..."):
+        ai_insights = get_bill_insights(bill_details)
+
+    st.markdown(ai_insights)
+    st.caption(
+        "AI-generated suggestions are informational. "
+        "Verify your actual bill details before acting on them."
+    )
+
 
     
 st.divider()
@@ -360,11 +393,33 @@ if uploaded_pdf is not None:
                 uploaded_pdf.getvalue(),
                 poppler_path=r"C:\Release-26.09.0-0\poppler-26.09.0\Library\bin"
             )
+            
 
-            extracted_text = "\n".join(
-                pytesseract.image_to_string(image, lang="eng+kan")
-                for image in images
-            )
+
+        ocr_results = []
+
+        for image in images:
+         processed_image = image.convert("L")
+         processed_image = ImageOps.autocontrast(processed_image)
+         
+         processed_image = processed_image.resize(
+                     (processed_image.width * 2, processed_image.height * 2)
+                 )
+         
+         text = pytesseract.image_to_string(
+                     processed_image,
+                     lang="eng+kan",
+                     config="--oem 1 --psm 3"
+                 )
+         
+         ocr_results.append(text)
+        
+
+         extracted_text = "\n".join(ocr_results)
+
+
+            
+
 
 
         if extracted_text.strip():
@@ -442,6 +497,73 @@ if uploaded_pdf is not None:
     except Exception as e:
         st.error("Could not read this PDF.")
         st.code(str(e))
+        
+st.divider()
+st.header("⚡ Karnataka Domestic Electricity Tariff")
+
+if st.button("View Karnataka Tariff Rates"):
+    conn = None
+    cursor = None
+
+    try:
+        conn = snowflake.connector.connect(
+            account=st.secrets["snowflake"]["account"],
+            user=st.secrets["snowflake"]["user"],
+            password=st.secrets["snowflake"]["password"],
+            warehouse=st.secrets["snowflake"]["warehouse"],
+            database=st.secrets["snowflake"]["database"],
+            schema=st.secrets["snowflake"]["schema"],
+            role=st.secrets["snowflake"]["role"],
+        )
+
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT FIXED_CHARGE_INR_PER_KW_MONTH,
+                   ENERGY_CHARGE_INR_PER_KWH
+            FROM BILLSENSE_DB.PUBLIC_DATA.KARNATAKA_DOMESTIC_TARIFF
+            WHERE FINANCIAL_YEAR = '2026-27'
+            LIMIT 1
+        """)
+        
+        tariff = cursor.fetchone()
+
+        if tariff is None:
+            st.warning("No tariff found for 2026-27.")
+        else:
+            fixed_rate, energy_rate = tariff
+
+            energy_charge = current_units * float(energy_rate)
+            fixed_charge = sanctioned_load * float(fixed_rate) * current_days / 30
+
+            st.subheader("Estimated Karnataka Electricity Charges")
+            st.metric("Energy Charge", f"₹{energy_charge:.2f}")
+            st.metric("Fixed Charge", f"₹{fixed_charge:.2f}")
+            st.metric(
+                "Estimated Total",
+                f"₹{energy_charge + fixed_charge:.2f}"
+            )
+            st.caption(
+                "Estimate only. Excludes other applicable charges, "
+                "taxes, subsidies, and adjustments."
+            )
+
+
+  
+       
+        st.success("Tariff rates loaded for FY 2026-27.")
+
+
+    except Exception as e:
+        st.error("Could not retrieve Karnataka tariff rates.")
+        st.code(str(e))
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()
+
 
 
 
