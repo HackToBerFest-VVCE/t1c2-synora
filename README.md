@@ -46,17 +46,18 @@ The tariff-based estimate covers energy and fixed charges only. It is not a comp
 - `test_snowflake.py` — Snowflake connection testing
 - `karnataka_domestic_electricity_tariff.csv` — Tariff data, if included in the local project
 
-## Run Locally
+### Setup and Installation
 
 1. Install Python and the required project dependencies.
-2. Configure Snowflake credentials securely using Streamlit secrets.
-3. Install and start Ollama, and ensure the Qwen2.5:3B model is available.
-4. Install the required Python packages.
-5. Run the application:
+2. Configure Snowflake credentials securely using Streamlit secrets (`.streamlit/secrets.toml`).
+3. Install Ollama and download the Qwen2.5:3B model.
+4. Start Ollama and run the application:
 
-   `python -m streamlit run app.py`
+   ```bash
+   python -m streamlit run app.py
+   ```
 
-Do not commit passwords, account credentials, API keys, or private configuration files.
+**Security Note:** Never commit passwords, Snowflake credentials, API keys, or private configuration files to GitHub. Keep sensitive information in local configuration files that are excluded from version control.
 
 ## Team
 
